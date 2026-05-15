@@ -1,0 +1,5 @@
+git pull
+# arbeiten
+git add .
+git commit -m "Beschreibung"
+git push
