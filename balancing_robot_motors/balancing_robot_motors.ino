@@ -57,7 +57,7 @@ const int ENB = 32;
 
 const int PWM_FREQ       = 20000;
 const int PWM_RESOLUTION = 8;       // 0-255
-const int MAX_PWM        = 220;
+const int MAX_PWM        =255;
 const int MIN_START_PWM  = 35;      // Mindestwert damit Motoren anlaufen
 
 // =======================================================
@@ -631,7 +631,7 @@ void loop() {
     Serial.print("pitch=");  Serial.print(pitchDeg, 2);
     Serial.print("  soll="); Serial.print(setpointDeg, 2);
     Serial.print("  err=");  Serial.print(setpointDeg - pitchDeg, 2);
-    Serial.print("  pid=");  Serial.print((int)computePID(dt));
+    //Serial.print("  pid=");  Serial.print((int)computePID(dt));
     Serial.print("  Kp=");   Serial.print(Kp, 1);
     Serial.print("  Ki=");   Serial.print(Ki, 2);
     Serial.print("  Kd=");   Serial.println(Kd, 2);
