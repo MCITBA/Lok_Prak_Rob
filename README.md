@@ -5,3 +5,5 @@ Sachen die ich brauche:
 u-kürzel, m-nummer  
 Name des Fill Material  
 foto von: TT-motor, Batterie, Hülle, Rädern, Schalter  
+Welche Überstzung beim Motor  
+Eckdaten der Baterrie: Volt, A, Ah  
