@@ -1,6 +1,5 @@
 /*
   Self-Balancing Robot - ESP32
-  MPU6500 (I2C) + PID + L298N + Live Webserver Tuning + PID Plotting
 
   -------------------------------------------------------
   MPU6500 Wiring
@@ -31,7 +30,7 @@
 // Webserver Konfiguration
 // =======================================================
 const char* ssid = "BalancingRobot_Tuning";
-const char* password = "password123"; // Mindestens 8 Zeichen
+const char* password = "12345678"; // Mindestens 8 Zeichen
 WebServer server(80);
 
 // =======================================================
@@ -47,15 +46,15 @@ const int IN4 = 33;
 const int ENB = 32;
 
 // --- PROFIL 1: Niedrige Frequenz (Hohes Drehmoment) ---
-int PWM_FREQ             = 255;    
+int PWM_FREQ             = 200;     // über Webserver einstellbar
 const int PWM_RESOLUTION = 8;       // 0-255
 const int MAX_PWM        = 255;
-int MIN_START_PWM        = 75;     
+int MIN_START_PWM        = 75;      // über Webserver einstellbar
 const int MIN_HOLD_PWM   = 40;     
 
 // Motor-Trimm-Faktor
-const float TRIM_LEFT  = 1.00f;  
-const float TRIM_RIGHT = 1.00f;  
+const float TRIM_LEFT  = 1.00f;     // ungenutzt
+const float TRIM_RIGHT = 1.00f;     // ungenutzt
 
 // =======================================================
 // KICKSTART & RICHTUNGSWECHSEL LOGIK
@@ -68,8 +67,8 @@ int kickCounterRight = 0;
 int lastSignLeft = 0; 
 int lastSignRight = 0;
 
-int actualPwmLeft = 0;
-int actualPwmRight = 0;
+int actualPwmLeft = 0;      // für die Ausgabe im Monitor
+int actualPwmRight = 0;     // für die Ausgabe im Monitor
 
 // =======================================================
 // MPU6500 Parameters
@@ -85,27 +84,27 @@ const float ACCEL_MAG_HIGH      = 13.0f;
 const float ACCEL_MAG_LOW       =  9.0f;
 const int   CALIB_SAMPLES       = 500;
 
-float pitchDeg         = 0.0f;
-float gyroOffsetY      = 0.0f;
-float gyroRateFiltered = 0.0f;
+float pitchDeg         = 0.0f;      // aktueller pitch
+float gyroOffsetY      = 0.0f;      // mathematischer Fehler des Gyroskops (Sensor-Drift)
+float gyroRateFiltered = 0.0f;      // gefilterte Winkelgeschwindigkeit
 
 // Mechanischer Offset, um den physikalischen Schwerpunkt zu trimmen
-float angleOffset      = 0.0f; 
+float angleOffset      = 0.0f;     // über Webserver einstellbar --> ändert sich bei jedem Einschalten minimal
 
 // =======================================================
 // PID Tunings & Globale Plot-Variablen
 // =======================================================
 
-float Kp = 15.0f;
-float Ki = 0.2f;  
-float Kd = 0.3f;
+float Kp = 15.0f;       // über Webserver einstellbar
+float Ki = 0.2f;        // über Webserver einstellbar
+float Kd = 0.3f;        // über Webserver einstellbar
 
-float setpointDeg   = 0.0f; 
+float setpointDeg   = 0.0f;       // Sollwinkel
 float integral      = 0.0f;
 float previousError = 0.0f;
 
 const float INTEGRAL_LIMIT   = 300.0f;
-const float FALL_ANGLE_LIMIT = 30.0f;
+const float FALL_ANGLE_LIMIT = 30.0f;     // ab diesem Winkel werden die Motoren abgestellt
 
 // Globale Variablen, damit der serielle Plotter die Einzelanteile mitschreiben kann
 float last_P_out = 0.0f;
@@ -448,10 +447,6 @@ void setup() {
 // Loop
 // =======================================================
 
-// =======================================================
-// Loop
-// =======================================================
-
 void loop() {
   server.handleClient();
 
@@ -490,27 +485,25 @@ void loop() {
   }
 
   // Datenausgabe für den IDE Seriellen Plotter / MATLAB mit vollen 200 Hz
-  if (millis() - lastSerialMillis >= 5) {
-    lastSerialMillis = millis();
-    
-    // 1. Winkeldaten
-    Serial.print("Ist-Pitch:"); Serial.print(pitchDeg, 2);
-    Serial.print(" ");
-    
-    // 2. Die einzelnen PID-Kanal-Anteile unskaliert (direkter PWM-Einfluss von -255 bis 255)
-    Serial.print("P-Anteil:"); Serial.print(last_P_out, 1);
-    Serial.print(" ");
-    Serial.print("I-Anteil:"); Serial.print(last_I_out, 1);
-    Serial.print(" ");
-    Serial.print("D-Anteil:"); Serial.print(last_D_out, 1);
-    Serial.print(" ");
+  lastSerialMillis = millis();
+  
+  // 1. Winkeldaten
+  Serial.print("Ist-Pitch:"); Serial.print(pitchDeg, 2);
+  Serial.print(" ");
+  
+  // 2. Die einzelnen PID-Kanal-Anteile unskaliert (direkter PWM-Einfluss von -255 bis 255)
+  Serial.print("P-Anteil:"); Serial.print(last_P_out, 1);
+  Serial.print(" ");
+  Serial.print("I-Anteil:"); Serial.print(last_I_out, 1);
+  Serial.print(" ");
+  Serial.print("D-Anteil:"); Serial.print(last_D_out, 1);
+  Serial.print(" ");
 
-    // 3. Reales Gesamtsignal am Motor
-    int realPwmAverage = (actualPwmLeft + actualPwmRight) / 2;
-    // Wir nutzen hier direkt das oben berechnete motorCommand für das Vorzeichen (OHNE neues 'int'!)
-    int signedRealPwm = (motorCommand >= 0) ? realPwmAverage : -realPwmAverage;
-    Serial.print("PWM_Effektiv:"); Serial.print(signedRealPwm);
-    
-    Serial.println(); 
-  }
+  // 3. Reales Gesamtsignal am Motor
+  int realPwmAverage = (actualPwmLeft + actualPwmRight) / 2;
+  // Wir nutzen hier direkt das oben berechnete motorCommand für das Vorzeichen (OHNE neues 'int'!)
+  int signedRealPwm = (motorCommand >= 0) ? realPwmAverage : -realPwmAverage;
+  Serial.print("PWM_Effektiv:"); Serial.print(signedRealPwm);
+  
+  Serial.println(); 
 }
