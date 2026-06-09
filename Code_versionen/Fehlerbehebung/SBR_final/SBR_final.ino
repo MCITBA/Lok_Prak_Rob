@@ -49,8 +49,8 @@ const int ENB = 32;
 int PWM_FREQ             = 200;     // über Webserver einstellbar
 const int PWM_RESOLUTION = 8;       // 0-255
 const int MAX_PWM        = 255;
-int MIN_START_PWM        = 75;      // über Webserver einstellbar
-const int MIN_HOLD_PWM   = 40;     
+int MIN_START_PWM        = 80;      // über Webserver einstellbar
+const int MIN_HOLD_PWM   = 50;     
 
 // Motor-Trimm-Faktor
 const float TRIM_LEFT  = 1.00f;     // ungenutzt
@@ -96,8 +96,8 @@ float angleOffset      = 0.0f;     // über Webserver einstellbar --> ändert si
 // =======================================================
 
 float Kp = 15.0f;       // über Webserver einstellbar
-float Ki = 0.2f;        // über Webserver einstellbar
-float Kd = 0.3f;        // über Webserver einstellbar
+float Ki = 0.0f;        // über Webserver einstellbar
+float Kd = 0.5f;        // über Webserver einstellbar
 
 float setpointDeg   = 0.0f;       // Sollwinkel
 float integral      = 0.0f;
@@ -369,8 +369,8 @@ float computePID(float dt) {
 
   // P-Anteil mit progressiver Kennlinie berechnen
   float P = Kp * error;
-  if (abs(error) > 4.0f) {
-    P = Kp * (error * abs(error) * 0.4f); 
+  if (abs(error) > 7.0f) {
+    P = Kp * (error * abs(error) * 0.3f); 
   }
 
   float I = Ki * integral;
